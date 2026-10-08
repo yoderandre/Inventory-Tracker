@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Onera Stock</title>
 
   <!-- Tailwind CSS -->
@@ -17,12 +17,15 @@
       object-fit: cover !important;
       border-radius: 0.75rem;
     }
+    .pb-safe {
+      padding-bottom: calc(1rem + env(safe-area-inset-bottom, 20px));
+    }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased overflow-y-auto selection:bg-indigo-500 selection:text-white pb-20">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased overflow-y-auto selection:bg-indigo-500 selection:text-white pb-28">
 
-  <!-- Top Header -->
-  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700/60 sticky top-0 z-40">
+  <!-- Top Header with Integrated Page Toggle -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700/60 sticky top-0 z-40">
     <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="p-2 bg-indigo-600 rounded-lg shadow-md shadow-indigo-600/30">
@@ -30,7 +33,7 @@
         </div>
         <div>
           <h1 class="font-bold text-lg leading-none text-white tracking-wide">Onera Stock</h1>
-          <p class="text-xs text-slate-400 mt-0.5" id="headerSubtitle">Inventory Tracker</p>
+          <p class="text-xs text-slate-400 mt-0.5">Inventory Tracking System</p>
         </div>
       </div>
       <div class="flex items-center space-x-2">
@@ -39,9 +42,21 @@
         </span>
       </div>
     </div>
+
+    <!-- Top Tab Toggle Bar (Ensures navigation is always visible) -->
+    <div class="max-w-md mx-auto px-4 pb-2">
+      <div class="grid grid-cols-2 bg-slate-900/80 p-1 rounded-xl border border-slate-700/80 text-xs font-semibold">
+        <button id="topNavScanBtn" onclick="switchPage('scan')" class="py-2 rounded-lg text-center transition bg-indigo-600 text-white shadow">
+          Scan Item
+        </button>
+        <button id="topNavInventoryBtn" onclick="switchPage('inventory')" class="py-2 rounded-lg text-center transition text-slate-400 hover:text-white">
+          Item Locations
+        </button>
+      </div>
+    </div>
   </header>
 
-  <!-- Main Content Area -->
+  <!-- Main Content Container -->
   <main class="flex-1 max-w-md w-full mx-auto p-4 space-y-4">
 
     <!-- Global Toast Alert -->
@@ -55,13 +70,12 @@
 
     <!-- PAGE 1: SCAN & LOG FORM -->
     <div id="pageScan" class="space-y-4">
-      <!-- Scanner Controls Block -->
       <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-4 shadow-xl space-y-3">
         <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
           <i data-lucide="scan" class="w-4 h-4 text-indigo-400"></i> Scan Item / Tag
         </h2>
 
-        <!-- Camera Scanner Viewfinder -->
+        <!-- Camera Viewfinder -->
         <div id="scannerContainer" class="hidden relative rounded-xl overflow-hidden bg-slate-950 border border-slate-700 mb-3 shadow-inner">
           <div id="reader" class="w-full"></div>
           <button id="stopScanBtn" onclick="stopCameraScanner()" class="absolute top-2 right-2 z-10 bg-rose-600/90 hover:bg-rose-600 text-white p-2 rounded-lg text-xs font-medium backdrop-blur flex items-center space-x-1 shadow">
@@ -131,7 +145,7 @@
       </form>
     </div>
 
-    <!-- PAGE 2: INVENTORY LOOKUP / LAST LOGGED LOCATION -->
+    <!-- PAGE 2: INVENTORY LOOKUP -->
     <div id="pageInventory" class="hidden space-y-4">
       <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-4 shadow-xl space-y-3">
         <div class="flex items-center justify-between">
@@ -143,14 +157,14 @@
           </button>
         </div>
 
-        <!-- Search Bar -->
+        <!-- Search Input -->
         <div class="relative">
           <input type="text" id="inventorySearch" oninput="filterInventoryList()" placeholder="Search item ID, location, or operator..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3.5 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
           <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-2.5"></i>
         </div>
       </div>
 
-      <!-- Inventory Cards List Container -->
+      <!-- Inventory List Cards -->
       <div id="inventoryList" class="space-y-3">
         <div class="text-center py-8 text-slate-500 text-sm">
           Loading latest inventory locations from Google Sheets...
@@ -160,8 +174,8 @@
 
   </main>
 
-  <!-- Bottom Navigation Bar -->
-  <nav class="fixed bottom-0 left-0 right-0 bg-slate-800/95 backdrop-blur border-t border-slate-700/80 z-50">
+  <!-- Sticky Bottom Navigation Bar with Safe Area Padding -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-slate-800/95 backdrop-blur border-t border-slate-700/80 z-50 pb-safe">
     <div class="max-w-md mx-auto grid grid-cols-2">
       <button id="navScanBtn" onclick="switchPage('scan')" class="flex flex-col items-center justify-center py-2.5 text-indigo-400 font-medium">
         <i data-lucide="scan-line" class="w-5 h-5 mb-0.5"></i>
@@ -188,30 +202,42 @@
       loadCustomLocations();
     });
 
-    // Navigation Switcher
+    // Dual Navigation Handler (Header Tabs + Bottom Nav)
     function switchPage(page) {
       const pageScan = document.getElementById('pageScan');
       const pageInventory = document.getElementById('pageInventory');
-      const navScanBtn = document.getElementById('navScanBtn');
-      const navInventoryBtn = document.getElementById('navInventoryBtn');
+
+      const topScan = document.getElementById('topNavScanBtn');
+      const topInv = document.getElementById('topNavInventoryBtn');
+
+      const bottomScan = document.getElementById('navScanBtn');
+      const bottomInv = document.getElementById('navInventoryBtn');
 
       if (page === 'scan') {
         pageScan.classList.remove('hidden');
         pageInventory.classList.add('hidden');
-        navScanBtn.className = "flex flex-col items-center justify-center py-2.5 text-indigo-400 font-medium";
-        navInventoryBtn.className = "flex flex-col items-center justify-center py-2.5 text-slate-400 font-medium hover:text-slate-200";
+
+        topScan.className = "py-2 rounded-lg text-center transition bg-indigo-600 text-white shadow";
+        topInv.className = "py-2 rounded-lg text-center transition text-slate-400 hover:text-white";
+
+        bottomScan.className = "flex flex-col items-center justify-center py-2.5 text-indigo-400 font-medium";
+        bottomInv.className = "flex flex-col items-center justify-center py-2.5 text-slate-400 font-medium hover:text-slate-200";
       } else {
         pageScan.classList.add('hidden');
         pageInventory.classList.remove('hidden');
-        navScanBtn.className = "flex flex-col items-center justify-center py-2.5 text-slate-400 font-medium hover:text-slate-200";
-        navInventoryBtn.className = "flex flex-col items-center justify-center py-2.5 text-emerald-400 font-medium";
+
+        topScan.className = "py-2 rounded-lg text-center transition text-slate-400 hover:text-white";
+        topInv.className = "py-2 rounded-lg text-center transition bg-emerald-600 text-white shadow";
+
+        bottomScan.className = "flex flex-col items-center justify-center py-2.5 text-slate-400 font-medium hover:text-slate-200";
+        bottomInv.className = "flex flex-col items-center justify-center py-2.5 text-emerald-400 font-medium";
+
         stopCameraScanner();
         fetchLatestInventory();
       }
       lucide.createIcons();
     }
 
-    // Fetch Inventory & Calculate Last Known Location for Each Item
     async function fetchLatestInventory() {
       const container = document.getElementById('inventoryList');
       container.innerHTML = `<div class="text-center py-8 text-slate-400 text-sm flex items-center justify-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Fetching from Google Sheets...</div>`;
@@ -224,7 +250,6 @@
         if (result.status === "success" && result.data) {
           latestInventoryMap.clear();
 
-          // Process logs in order so the last record overrides earlier ones
           result.data.forEach(row => {
             latestInventoryMap.set(String(row.itemId), {
               itemId: row.itemId,
@@ -243,7 +268,6 @@
       }
     }
 
-    // Render Inventory Cards
     function renderInventoryList(items) {
       const container = document.getElementById('inventoryList');
 
@@ -274,7 +298,6 @@
       lucide.createIcons();
     }
 
-    // Search/Filter Items
     function filterInventoryList() {
       const query = document.getElementById('inventorySearch').value.toLowerCase();
       const allItems = Array.from(latestInventoryMap.values());
