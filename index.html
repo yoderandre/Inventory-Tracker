@@ -107,3 +107,244 @@
         <div class="relative">
           <select id="storageLocation" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 appearance-none transition pr-10">
             <option value="" disabled selected>-- Select Storage Location --</option>
+            <option value="Warehouse A - Shelf 1">Warehouse A - Shelf 1</option>
+            <option value="Warehouse A - Shelf 2">Warehouse A - Shelf 2</option>
+            <option value="Warehouse B - Bin 04">Warehouse B - Bin 04</option>
+            <option value="Cold Storage - Section C">Cold Storage - Section C</option>
+            <option value="Main Receiving Bay">Main Receiving Bay</option>
+            <option value="Secondary Storage Unit">Secondary Storage Unit</option>
+          </select>
+          <div class="absolute right-3 top-3 pointer-events-none text-slate-400">
+            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Operator ID / Name Field -->
+      <div>
+        <label for="operator" class="block text-xs font-medium text-slate-300 mb-1.5">Operator Name / ID <span class="text-indigo-400">*</span></label>
+        <div class="relative">
+          <input type="text" id="operator" required placeholder="Enter operator name or ID" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button type="submit" id="submitBtn" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white py-3 px-4 rounded-xl font-semibold text-sm transition shadow-lg shadow-indigo-600/25 flex items-center justify-center space-x-2 border border-indigo-500/30 disabled:opacity-50">
+        <i data-lucide="send" class="w-4 h-4"></i>
+        <span>Save to Google Sheet</span>
+      </button>
+
+    </form>
+
+  </main>
+
+  <!-- JavaScript Logic -->
+  <script>
+    // HARDCODED GOOGLE APPS SCRIPT ENDPOINT (Hidden from UI)
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw3J_UTxuGUETX1_b8MLp3Vd99gRp2gT9KJkhp_8ziAp8KPRV6FAk3ESxs_a2eQ9ShAKA/exec";
+
+    let html5QrCode = null;
+    let nfcReader = null;
+
+    // Initialize App
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      checkNfcSupport();
+      loadCustomLocations();
+    });
+
+    // Load dynamic custom storage locations from localStorage
+    function loadCustomLocations() {
+      const savedLocations = JSON.parse(localStorage.getItem('onera_custom_locations') || '[]');
+      const selectElem = document.getElementById('storageLocation');
+      
+      savedLocations.forEach(loc => {
+        // Prevent duplicate options
+        const exists = Array.from(selectElem.options).some(opt => opt.value === loc);
+        if (!exists) {
+          const opt = document.createElement('option');
+          opt.value = loc;
+          opt.textContent = loc;
+          selectElem.appendChild(opt);
+        }
+      });
+    }
+
+    // Prompt user to add a new storage location
+    function promptAddLocation() {
+      const newLoc = prompt("Enter new storage location name:");
+      if (newLoc && newLoc.trim() !== "") {
+        const trimmed = newLoc.trim();
+        const selectElem = document.getElementById('storageLocation');
+        
+        // Check if already exists
+        const exists = Array.from(selectElem.options).some(opt => opt.value.toLowerCase() === trimmed.toLowerCase());
+        
+        if (!exists) {
+          const opt = document.createElement('option');
+          opt.value = trimmed;
+          opt.textContent = trimmed;
+          opt.selected = true; // Automatically select the newly created location
+          selectElem.appendChild(opt);
+
+          // Save to localStorage
+          const savedLocations = JSON.parse(localStorage.getItem('onera_custom_locations') || '[]');
+          savedLocations.push(trimmed);
+          localStorage.setItem('onera_custom_locations', JSON.stringify(savedLocations));
+
+          showAlert("Success", `Added "${trimmed}" to storage locations.`, "success");
+        } else {
+          selectElem.value = trimmed;
+          showAlert("Info", `Location "${trimmed}" already exists in the list.`, "info");
+        }
+      }
+    }
+
+    // Check Web NFC Availability
+    function checkNfcSupport() {
+      const badge = document.getElementById("nfcStatusBadge");
+      if ("NDEFReader" in window) {
+        badge.classList.remove("hidden");
+        badge.classList.add("bg-emerald-950", "text-emerald-300", "border-emerald-800");
+        badge.textContent = "Web NFC Supported";
+      } else {
+        badge.classList.remove("hidden");
+        badge.classList.add("bg-amber-950", "text-amber-300", "border-amber-800");
+        badge.textContent = "NFC (Android Chrome Only)";
+      }
+    }
+
+    // Toast Alert Helper
+    function showAlert(title, message, type = "info") {
+      const toast = document.getElementById("alertToast");
+      const icon = document.getElementById("alertIcon");
+      const msg = document.getElementById("alertMessage");
+
+      msg.innerHTML = `<strong>${title}:</strong> ${message}`;
+      toast.className = "p-4 rounded-xl shadow-lg border transition-all duration-300 flex items-start space-x-3 ";
+
+      if (type === "success") {
+        toast.classList.add("bg-emerald-950/90", "border-emerald-700/80", "text-emerald-200");
+      } else if (type === "error") {
+        toast.classList.add("bg-rose-950/90", "border-rose-700/80", "text-rose-200");
+      } else {
+        toast.classList.add("bg-slate-800", "border-slate-700", "text-slate-200");
+      }
+
+      toast.classList.remove("hidden");
+      lucide.createIcons();
+    }
+
+    function hideAlert() {
+      document.getElementById("alertToast").classList.add("hidden");
+    }
+
+    // Camera Barcode Scanner
+    async function startCameraScanner() {
+      const container = document.getElementById("scannerContainer");
+      container.classList.remove("hidden");
+
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+      }
+
+      const config = { fps: 10, qrbox: { width: 250, height: 180 } };
+
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          config,
+          (decodedText) => {
+            document.getElementById("itemId").value = decodedText;
+            showAlert("Barcode Scanned", `Captured ID: <strong>${decodedText}</strong>`, "success");
+            stopCameraScanner();
+          },
+          () => {} // Silent on search frame
+        );
+      } catch (err) {
+        showAlert("Camera Error", "Could not access camera. Ensure permissions are granted.", "error");
+        container.classList.add("hidden");
+      }
+    }
+
+    async function stopCameraScanner() {
+      if (html5QrCode && html5QrCode.isScanning) {
+        await html5QrCode.stop();
+      }
+      document.getElementById("scannerContainer").classList.add("hidden");
+    }
+
+    // Web NFC Scanner Trigger
+    async function triggerNfcRead() {
+      if (!("NDEFReader" in window)) {
+        showAlert("NFC Info", "Web NFC reading is supported on Android Chrome. On iOS devices, please use camera barcode scanning.", "info");
+        return;
+      }
+
+      try {
+        nfcReader = new NDEFReader();
+        await nfcReader.scan();
+        showAlert("NFC Active", "Tap an NFC tag against the back of your device...", "info");
+
+        nfcReader.addEventListener("reading", ({ serialNumber, message }) => {
+          let scannedVal = serialNumber;
+          if (message && message.records.length > 0) {
+            const decoder = new TextDecoder();
+            for (const record of message.records) {
+              if (record.data) {
+                scannedVal = decoder.decode(record.data);
+                break;
+              }
+            }
+          }
+          document.getElementById("itemId").value = scannedVal || "UNKNOWN_NFC_TAG";
+          showAlert("NFC Tag Read", `Captured Tag ID: <strong>${scannedVal}</strong>`, "success");
+        });
+      } catch (error) {
+        showAlert("NFC Error", "NFC scan failed or permission denied: " + error.message, "error");
+      }
+    }
+
+    // Form Submission to Google Sheet
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+
+      const itemId = document.getElementById("itemId").value.trim();
+      const location = document.getElementById("storageLocation").value;
+      const operator = document.getElementById("operator").value.trim();
+      const submitBtn = document.getElementById("submitBtn");
+
+      if (!itemId || !location || !operator) {
+        showAlert("Validation Error", "Please fill in all required fields.", "error");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>Saving...</span>`;
+      lucide.createIcons();
+
+      try {
+        const payload = { itemId, location, operator };
+
+        await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors", // Google Apps Script requires no-cors mode for cross-origin POST requests
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        showAlert("Success", `Inventory item <strong>${itemId}</strong> logged to Google Sheet!`, "success");
+
+        // Clear scanned item ID field after successful logging
+        document.getElementById("itemId").value = "";
+      } catch (err) {
+        showAlert("Submission Error", "Failed to communicate with Google Sheet endpoint.", "error");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i> <span>Save to Google Sheet</span>`;
+        lucide.createIcons();
+      }
+    }
+  </script>
+</body>
+</html>
