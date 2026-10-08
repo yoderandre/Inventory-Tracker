@@ -43,7 +43,7 @@
       </div>
     </div>
 
-    <!-- Top Tab Toggle Bar (Ensures navigation is always visible) -->
+    <!-- Top Tab Toggle Bar -->
     <div class="max-w-md mx-auto px-4 pb-2">
       <div class="grid grid-cols-2 bg-slate-900/80 p-1 rounded-xl border border-slate-700/80 text-xs font-semibold">
         <button id="topNavScanBtn" onclick="switchPage('scan')" class="py-2 rounded-lg text-center transition bg-indigo-600 text-white shadow">
@@ -174,7 +174,7 @@
 
   </main>
 
-  <!-- Sticky Bottom Navigation Bar with Safe Area Padding -->
+  <!-- Sticky Bottom Navigation Bar -->
   <nav class="fixed bottom-0 left-0 right-0 bg-slate-800/95 backdrop-blur border-t border-slate-700/80 z-50 pb-safe">
     <div class="max-w-md mx-auto grid grid-cols-2">
       <button id="navScanBtn" onclick="switchPage('scan')" class="flex flex-col items-center justify-center py-2.5 text-indigo-400 font-medium">
@@ -190,7 +190,7 @@
 
   <!-- JavaScript Logic -->
   <script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/library/d/10nRMKaCkHUp-GmfbFU-yzMDyvO_-oX9S5kF-MmYkZGGPYHB_m4u0eCpN/3";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw3J_UTxuGUETX1_b8MLp3Vd99gRp2gT9KJkhp_8ziAp8KPRV6FAk3ESxs_a2eQ9ShAKA/exec";
 
     let html5QrCode = null;
     let nfcReader = null;
@@ -202,7 +202,6 @@
       loadCustomLocations();
     });
 
-    // Dual Navigation Handler (Header Tabs + Bottom Nav)
     function switchPage(page) {
       const pageScan = document.getElementById('pageScan');
       const pageInventory = document.getElementById('pageInventory');
@@ -244,7 +243,12 @@
       lucide.createIcons();
 
       try {
-        const response = await fetch(APPS_SCRIPT_URL);
+        // Fetch with explicit follow-redirect settings to resolve CORS redirect block
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: "GET",
+          redirect: "follow"
+        });
+
         const result = await response.json();
 
         if (result.status === "success" && result.data) {
@@ -264,7 +268,8 @@
           container.innerHTML = `<div class="text-center py-8 text-rose-400 text-sm">Failed to load inventory records.</div>`;
         }
       } catch (error) {
-        container.innerHTML = `<div class="text-center py-8 text-rose-400 text-sm">Error connecting to Google Sheets.</div>`;
+        console.error("Fetch Error:", error);
+        container.innerHTML = `<div class="text-center py-8 text-rose-400 text-sm">Error connecting to Google Sheets. Check console for details.</div>`;
       }
     }
 
