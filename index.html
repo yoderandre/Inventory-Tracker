@@ -121,12 +121,14 @@
           <div class="relative">
             <select id="storageLocation" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 appearance-none transition pr-10">
               <option value="" disabled selected>-- Select Storage Location --</option>
-              <option value="Warehouse Building 3">Warehouse Building 3</option>
+              <option value="Warehouse building 3">Warehouse building 3</option>
               <option value="Warehouse Building 7">Warehouse Building 7</option>
-              <option value="Dacor">Dacor</option>
+              <option value="Maintenance Building 1">Maintenance Building 1</option>
+              <option value="Dacor Building 2">Dacor Building 2</option>
+              <option value="Dacor Building 4">Dacor Building 4</option>
               <option value="DM Cores">DM Cores</option>
               <option value="EM Cores">EM Cores</option>
-              <option value="Windy Ridge">Windy Ridge</option>
+              <option value="Windy ridge">Windy ridge</option>
             </select>
             <div class="absolute right-3 top-3 pointer-events-none text-slate-400">
               <i data-lucide="chevron-down" class="w-4 h-4"></i>
@@ -191,7 +193,7 @@
 
   <!-- JavaScript Logic -->
   <script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/library/d/10nRMKaCkHUp-GmfbFU-yzMDyvO_-oX9S5kF-MmYkZGGPYHB_m4u0eCpN/7";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw3J_UTxuGUETX1_b8MLp3Vd99gRp2gT9KJkhp_8ziAp8KPRV6FAk3ESxs_a2eQ9ShAKA/exec";
 
     let html5QrCode = null;
     let nfcReader = null;
@@ -243,7 +245,6 @@
       container.classList.remove("hidden");
 
       if (!html5QrCode) {
-        // Explicitly load all standard 1D and 2D barcode formats
         html5QrCode = new Html5Qrcode("reader", {
           verbose: false,
           formatsToSupport: [
@@ -260,7 +261,6 @@
         });
       }
 
-      // Wide scan region optimized for 1D linear barcodes
       const config = {
         fps: 15,
         qrbox: (viewfinderWidth, viewfinderHeight) => {
@@ -287,7 +287,6 @@
           () => {}
         );
       } catch (err) {
-        // Fallback if environment constraint fails on older hardware
         try {
           await html5QrCode.start({ facingMode: "user" }, config, (decodedText) => {
             document.getElementById("itemId").value = decodedText;
@@ -395,149 +394,4 @@
 
     function loadCustomLocations() {
       const savedLocations = JSON.parse(localStorage.getItem('onera_custom_locations') || '[]');
-      const selectElem = document.getElementById('storageLocation');
-      
-      savedLocations.forEach(loc => {
-        const exists = Array.from(selectElem.options).some(opt => opt.value === loc);
-        if (!exists) {
-          const opt = document.createElement('option');
-          opt.value = loc;
-          opt.textContent = loc;
-          selectElem.appendChild(opt);
-        }
-      });
-    }
-
-    function promptAddLocation() {
-      const newLoc = prompt("Enter new storage location name:");
-      if (newLoc && newLoc.trim() !== "") {
-        const trimmed = newLoc.trim();
-        const selectElem = document.getElementById('storageLocation');
-        
-        const exists = Array.from(selectElem.options).some(opt => opt.value.toLowerCase() === trimmed.toLowerCase());
-        
-        if (!exists) {
-          const opt = document.createElement('option');
-          opt.value = trimmed;
-          opt.textContent = trimmed;
-          opt.selected = true;
-          selectElem.appendChild(opt);
-
-          const savedLocations = JSON.parse(localStorage.getItem('onera_custom_locations') || '[]');
-          savedLocations.push(trimmed);
-          localStorage.setItem('onera_custom_locations', JSON.stringify(savedLocations));
-
-          showAlert("Success", `Added "${trimmed}" to storage locations.`, "success");
-        } else {
-          selectElem.value = trimmed;
-          showAlert("Info", `Location "${trimmed}" already exists in the list.`, "info");
-        }
-      }
-    }
-
-    function checkNfcSupport() {
-      const badge = document.getElementById("nfcStatusBadge");
-      if ("NDEFReader" in window) {
-        badge.classList.remove("hidden");
-        badge.classList.add("bg-emerald-950", "text-emerald-300", "border-emerald-800");
-        badge.textContent = "Web NFC Supported";
-      } else {
-        badge.classList.remove("hidden");
-        badge.classList.add("bg-amber-950", "text-amber-300", "border-amber-800");
-        badge.textContent = "NFC (Android Chrome Only)";
-      }
-    }
-
-    function showAlert(title, message, type = "info") {
-      const toast = document.getElementById("alertToast");
-      const msg = document.getElementById("alertMessage");
-
-      msg.innerHTML = `<strong>${title}:</strong> ${message}`;
-      toast.className = "p-4 rounded-xl shadow-lg border transition-all duration-300 flex items-start space-x-3 ";
-
-      if (type === "success") {
-        toast.classList.add("bg-emerald-950/90", "border-emerald-700/80", "text-emerald-200");
-      } else if (type === "error") {
-        toast.classList.add("bg-rose-950/90", "border-rose-700/80", "text-rose-200");
-      } else {
-        toast.classList.add("bg-slate-800", "border-slate-700", "text-slate-200");
-      }
-
-      toast.classList.remove("hidden");
-      lucide.createIcons();
-    }
-
-    function hideAlert() {
-      document.getElementById("alertToast").classList.add("hidden");
-    }
-
-    async function triggerNfcRead() {
-      if (!("NDEFReader" in window)) {
-        showAlert("NFC Info", "Web NFC reading is supported on Android Chrome. On iOS devices, please use camera barcode scanning.", "info");
-        return;
-      }
-
-      try {
-        nfcReader = new NDEFReader();
-        await nfcReader.scan();
-        showAlert("NFC Active", "Tap an NFC tag against the back of your device...", "info");
-
-        nfcReader.addEventListener("reading", ({ serialNumber, message }) => {
-          let scannedVal = serialNumber;
-          if (message && message.records.length > 0) {
-            const decoder = new TextDecoder();
-            for (const record of message.records) {
-              if (record.data) {
-                scannedVal = decoder.decode(record.data);
-                break;
-              }
-            }
-          }
-          document.getElementById("itemId").value = scannedVal || "UNKNOWN_NFC_TAG";
-          showAlert("NFC Tag Read", `Captured Tag ID: <strong>${scannedVal}</strong>`, "success");
-        });
-      } catch (error) {
-        showAlert("NFC Error", "NFC scan failed or permission denied: " + error.message, "error");
-      }
-    }
-
-    async function handleFormSubmit(e) {
-      e.preventDefault();
-
-      const itemId = document.getElementById("itemId").value.trim();
-      const location = document.getElementById("storageLocation").value;
-      const operator = document.getElementById("operator").value.trim();
-      const submitBtn = document.getElementById("submitBtn");
-
-      if (!itemId || !location || !operator) {
-        showAlert("Validation Error", "Please fill in all required fields.", "error");
-        return;
-      }
-
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>Saving...</span>`;
-      lucide.createIcons();
-
-      const payload = JSON.stringify({ itemId, location, operator });
-
-      try {
-        await fetch(APPS_SCRIPT_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain" },
-          body: payload
-        });
-
-        showAlert("Success", `Inventory item <strong>${itemId}</strong> saved to Google Sheet!`, "success");
-        document.getElementById("itemId").value = "";
-      } catch (err) {
-        showAlert("Submission Error", "Failed to communicate with Google Sheet endpoint.", "error");
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i> <span>Save to Google Sheet</span>`;
-        lucide.createIcons();
-      }
-    }
-  </script>
-</body>
-</html>
+      const selectElem = document.getElementById('
