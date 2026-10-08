@@ -25,7 +25,7 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased overflow-y-auto selection:bg-indigo-500 selection:text-white pb-28">
 
-  <!-- Top Header with Page Toggle -->
+  <!-- Top Header with Integrated Page Toggle -->
   <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700/60 sticky top-0 z-40">
     <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center space-x-3">
@@ -193,13 +193,12 @@
 
   <!-- JavaScript Logic -->
   <script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw3J_UTxuGUETX1_b8MLp3Vd99gRp2gT9KJkhp_8ziAp8KPRV6FAk3ESxs_a2eQ9ShAKA/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/library/d/10nRMKaCkHUp-GmfbFU-yzMDyvO_-oX9S5kF-MmYkZGGPYHB_m4u0eCpN/8";
 
     let html5QrCode = null;
     let nfcReader = null;
     let latestInventoryMap = new Map();
 
-    // Safe icon initialization
     function safeInitIcons() {
       if (window.lucide && typeof window.lucide.createIcons === "function") {
         window.lucide.createIcons();
@@ -293,39 +292,44 @@
       document.getElementById("scannerContainer").classList.add("hidden");
     }
 
-    async function fetchLatestInventory() {
+    // JSONP callback function to receive inventory data cleanly across domains
+    window.handleInventoryResponse = function(result) {
+      const container = document.getElementById('inventoryList');
+      if (result && result.status === "success" && result.data) {
+        latestInventoryMap.clear();
+
+        result.data.forEach(row => {
+          latestInventoryMap.set(String(row.itemId), {
+            itemId: row.itemId,
+            location: row.location,
+            operator: row.operator,
+            timestamp: row.timestamp
+          });
+        });
+
+        renderInventoryList(Array.from(latestInventoryMap.values()));
+      } else {
+        container.innerHTML = `<div class="text-center py-8 text-rose-400 text-sm">Failed to load inventory records.</div>`;
+      }
+    };
+
+    function fetchLatestInventory() {
       const container = document.getElementById('inventoryList');
       container.innerHTML = `<div class="text-center py-8 text-slate-400 text-sm flex items-center justify-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Fetching from Google Sheets...</div>`;
       safeInitIcons();
 
-      try {
-        const response = await fetch(APPS_SCRIPT_URL, {
-          method: "GET",
-          redirect: "follow"
-        });
+      // Remove existing script tags if re-fetching
+      const oldScript = document.getElementById('jsonp-inventory');
+      if (oldScript) oldScript.remove();
 
-        const result = await response.json();
-
-        if (result.status === "success" && result.data) {
-          latestInventoryMap.clear();
-
-          result.data.forEach(row => {
-            latestInventoryMap.set(String(row.itemId), {
-              itemId: row.itemId,
-              location: row.location,
-              operator: row.operator,
-              timestamp: row.timestamp
-            });
-          });
-
-          renderInventoryList(Array.from(latestInventoryMap.values()));
-        } else {
-          container.innerHTML = `<div class="text-center py-8 text-rose-400 text-sm">Failed to load inventory records.</div>`;
-        }
-      } catch (error) {
-        console.error("Fetch Error:", error);
-        container.innerHTML = `<div class="text-center py-8 text-rose-400 text-sm">Error connecting to Google Sheets. Check console for details.</div>`;
-      }
+      // Inject script tag to bypass CORS
+      const script = document.createElement('script');
+      script.id = 'jsonp-inventory';
+      script.src = `${APPS_SCRIPT_URL}?callback=handleInventoryResponse`;
+      script.onerror = function() {
+        container.innerHTML = `<div class="text-center py-8 text-rose-400 text-sm">Error connecting to Google Sheets endpoint.</div>`;
+      };
+      document.body.appendChild(script);
     }
 
     function renderInventoryList(items) {
