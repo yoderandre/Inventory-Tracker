@@ -25,7 +25,7 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased overflow-y-auto selection:bg-indigo-500 selection:text-white pb-28">
 
-  <!-- Top Header with Integrated Page Toggle -->
+  <!-- Top Header with Page Toggle -->
   <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700/60 sticky top-0 z-40">
     <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center space-x-3">
@@ -47,10 +47,10 @@
     <!-- Top Tab Toggle Bar -->
     <div class="max-w-md mx-auto px-4 pb-2">
       <div class="grid grid-cols-2 bg-slate-900/80 p-1 rounded-xl border border-slate-700/80 text-xs font-semibold">
-        <button id="topNavScanBtn" onclick="switchPage('scan')" class="py-2 rounded-lg text-center transition bg-indigo-600 text-white shadow">
+        <button id="topNavScanBtn" type="button" onclick="switchPage('scan')" class="py-2 rounded-lg text-center transition bg-indigo-600 text-white shadow">
           Scan Item
         </button>
-        <button id="topNavInventoryBtn" onclick="switchPage('inventory')" class="py-2 rounded-lg text-center transition text-slate-400 hover:text-white">
+        <button id="topNavInventoryBtn" type="button" onclick="switchPage('inventory')" class="py-2 rounded-lg text-center transition text-slate-400 hover:text-white">
           Item Locations
         </button>
       </div>
@@ -64,7 +64,7 @@
     <div id="alertToast" class="hidden p-4 rounded-xl shadow-lg border transition-all duration-300 flex items-start space-x-3">
       <i id="alertIcon" data-lucide="info" class="w-5 h-5 shrink-0 mt-0.5"></i>
       <div class="flex-1 text-sm font-medium" id="alertMessage"></div>
-      <button onclick="hideAlert()" class="text-slate-400 hover:text-white">
+      <button type="button" onclick="hideAlert()" class="text-slate-400 hover:text-white">
         <i data-lucide="x" class="w-4 h-4"></i>
       </button>
     </div>
@@ -79,7 +79,7 @@
         <!-- Camera Viewfinder -->
         <div id="scannerContainer" class="hidden relative rounded-xl overflow-hidden bg-slate-950 border border-slate-700 mb-3 shadow-inner">
           <div id="reader" class="w-full min-h-[250px]"></div>
-          <button id="stopScanBtn" onclick="stopCameraScanner()" class="absolute top-2 right-2 z-10 bg-rose-600/90 hover:bg-rose-600 text-white p-2 rounded-lg text-xs font-medium backdrop-blur flex items-center space-x-1 shadow">
+          <button id="stopScanBtn" type="button" onclick="stopCameraScanner()" class="absolute top-2 right-2 z-10 bg-rose-600/90 hover:bg-rose-600 text-white p-2 rounded-lg text-xs font-medium backdrop-blur flex items-center space-x-1 shadow">
             <i data-lucide="camera-off" class="w-4 h-4"></i>
             <span>Close Camera</span>
           </button>
@@ -155,7 +155,7 @@
           <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <i data-lucide="map-pin" class="w-4 h-4 text-emerald-400"></i> Latest Item Locations
           </h2>
-          <button onclick="fetchLatestInventory()" class="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+          <button type="button" onclick="fetchLatestInventory()" class="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
             <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
           </button>
         </div>
@@ -180,11 +180,11 @@
   <!-- Sticky Bottom Navigation Bar -->
   <nav class="fixed bottom-0 left-0 right-0 bg-slate-800/95 backdrop-blur border-t border-slate-700/80 z-50 pb-safe">
     <div class="max-w-md mx-auto grid grid-cols-2">
-      <button id="navScanBtn" onclick="switchPage('scan')" class="flex flex-col items-center justify-center py-2.5 text-indigo-400 font-medium">
+      <button id="navScanBtn" type="button" onclick="switchPage('scan')" class="flex flex-col items-center justify-center py-2.5 text-indigo-400 font-medium">
         <i data-lucide="scan-line" class="w-5 h-5 mb-0.5"></i>
         <span class="text-[11px]">Scan Item</span>
       </button>
-      <button id="navInventoryBtn" onclick="switchPage('inventory')" class="flex flex-col items-center justify-center py-2.5 text-slate-400 font-medium hover:text-slate-200">
+      <button id="navInventoryBtn" type="button" onclick="switchPage('inventory')" class="flex flex-col items-center justify-center py-2.5 text-slate-400 font-medium hover:text-slate-200">
         <i data-lucide="boxes" class="w-5 h-5 mb-0.5"></i>
         <span class="text-[11px]">Item Locations</span>
       </button>
@@ -193,14 +193,21 @@
 
   <!-- JavaScript Logic -->
   <script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/library/d/10nRMKaCkHUp-GmfbFU-yzMDyvO_-oX9S5kF-MmYkZGGPYHB_m4u0eCpN/7";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw3J_UTxuGUETX1_b8MLp3Vd99gRp2gT9KJkhp_8ziAp8KPRV6FAk3ESxs_a2eQ9ShAKA/exec";
 
     let html5QrCode = null;
     let nfcReader = null;
     let latestInventoryMap = new Map();
 
+    // Safe icon initialization
+    function safeInitIcons() {
+      if (window.lucide && typeof window.lucide.createIcons === "function") {
+        window.lucide.createIcons();
+      }
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
-      lucide.createIcons();
+      safeInitIcons();
       checkNfcSupport();
       loadCustomLocations();
     });
@@ -237,45 +244,27 @@
         stopCameraScanner();
         fetchLatestInventory();
       }
-      lucide.createIcons();
+      safeInitIcons();
     }
 
     async function startCameraScanner() {
       const container = document.getElementById("scannerContainer");
       container.classList.remove("hidden");
 
-      if (!html5QrCode) {
-        html5QrCode = new Html5Qrcode("reader", {
-          verbose: false,
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.QR_CODE,
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.CODABAR,
-            Html5QrcodeSupportedFormats.ITF
-          ]
-        });
-      }
-
-      const config = {
-        fps: 15,
-        qrbox: (viewfinderWidth, viewfinderHeight) => {
-          const width = Math.floor(viewfinderWidth * 0.85);
-          const height = Math.floor(viewfinderHeight * 0.45);
-          return { width: width, height: Math.max(height, 120) };
-        },
-        videoConstraints: {
-          facingMode: { exact: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      };
-
       try {
+        if (!html5QrCode) {
+          html5QrCode = new Html5Qrcode("reader");
+        }
+
+        const config = {
+          fps: 15,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const width = Math.floor(viewfinderWidth * 0.85);
+            const height = Math.floor(viewfinderHeight * 0.45);
+            return { width: width, height: Math.max(height, 120) };
+          }
+        };
+
         await html5QrCode.start(
           { facingMode: "environment" },
           config,
@@ -287,22 +276,19 @@
           () => {}
         );
       } catch (err) {
-        try {
-          await html5QrCode.start({ facingMode: "user" }, config, (decodedText) => {
-            document.getElementById("itemId").value = decodedText;
-            showAlert("Barcode Scanned", `Captured ID: <strong>${decodedText}</strong>`, "success");
-            stopCameraScanner();
-          }, () => {});
-        } catch (fallbackErr) {
-          showAlert("Camera Error", "Could not access camera. Ensure camera permissions are allowed.", "error");
-          container.classList.add("hidden");
-        }
+        console.error("Camera Start Error:", err);
+        showAlert("Camera Error", "Could not access camera. Ensure permissions are allowed.", "error");
+        container.classList.add("hidden");
       }
     }
 
     async function stopCameraScanner() {
       if (html5QrCode && html5QrCode.isScanning) {
-        await html5QrCode.stop();
+        try {
+          await html5QrCode.stop();
+        } catch (e) {
+          console.error("Error stopping camera:", e);
+        }
       }
       document.getElementById("scannerContainer").classList.add("hidden");
     }
@@ -310,7 +296,7 @@
     async function fetchLatestInventory() {
       const container = document.getElementById('inventoryList');
       container.innerHTML = `<div class="text-center py-8 text-slate-400 text-sm flex items-center justify-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Fetching from Google Sheets...</div>`;
-      lucide.createIcons();
+      safeInitIcons();
 
       try {
         const response = await fetch(APPS_SCRIPT_URL, {
@@ -369,7 +355,7 @@
         </div>
       `).join('');
 
-      lucide.createIcons();
+      safeInitIcons();
     }
 
     function filterInventoryList() {
@@ -394,4 +380,149 @@
 
     function loadCustomLocations() {
       const savedLocations = JSON.parse(localStorage.getItem('onera_custom_locations') || '[]');
-      const selectElem = document.getElementById('
+      const selectElem = document.getElementById('storageLocation');
+      
+      savedLocations.forEach(loc => {
+        const exists = Array.from(selectElem.options).some(opt => opt.value === loc);
+        if (!exists) {
+          const opt = document.createElement('option');
+          opt.value = loc;
+          opt.textContent = loc;
+          selectElem.appendChild(opt);
+        }
+      });
+    }
+
+    function promptAddLocation() {
+      const newLoc = prompt("Enter new storage location name:");
+      if (newLoc && newLoc.trim() !== "") {
+        const trimmed = newLoc.trim();
+        const selectElem = document.getElementById('storageLocation');
+        
+        const exists = Array.from(selectElem.options).some(opt => opt.value.toLowerCase() === trimmed.toLowerCase());
+        
+        if (!exists) {
+          const opt = document.createElement('option');
+          opt.value = trimmed;
+          opt.textContent = trimmed;
+          opt.selected = true;
+          selectElem.appendChild(opt);
+
+          const savedLocations = JSON.parse(localStorage.getItem('onera_custom_locations') || '[]');
+          savedLocations.push(trimmed);
+          localStorage.setItem('onera_custom_locations', JSON.stringify(savedLocations));
+
+          showAlert("Success", `Added "${trimmed}" to storage locations.`, "success");
+        } else {
+          selectElem.value = trimmed;
+          showAlert("Info", `Location "${trimmed}" already exists in the list.`, "info");
+        }
+      }
+    }
+
+    function checkNfcSupport() {
+      const badge = document.getElementById("nfcStatusBadge");
+      if ("NDEFReader" in window) {
+        badge.classList.remove("hidden");
+        badge.classList.add("bg-emerald-950", "text-emerald-300", "border-emerald-800");
+        badge.textContent = "Web NFC Supported";
+      } else {
+        badge.classList.remove("hidden");
+        badge.classList.add("bg-amber-950", "text-amber-300", "border-amber-800");
+        badge.textContent = "NFC (Android Chrome Only)";
+      }
+    }
+
+    function showAlert(title, message, type = "info") {
+      const toast = document.getElementById("alertToast");
+      const msg = document.getElementById("alertMessage");
+
+      msg.innerHTML = `<strong>${title}:</strong> ${message}`;
+      toast.className = "p-4 rounded-xl shadow-lg border transition-all duration-300 flex items-start space-x-3 ";
+
+      if (type === "success") {
+        toast.classList.add("bg-emerald-950/90", "border-emerald-700/80", "text-emerald-200");
+      } else if (type === "error") {
+        toast.classList.add("bg-rose-950/90", "border-rose-700/80", "text-rose-200");
+      } else {
+        toast.classList.add("bg-slate-800", "border-slate-700", "text-slate-200");
+      }
+
+      toast.classList.remove("hidden");
+      safeInitIcons();
+    }
+
+    function hideAlert() {
+      document.getElementById("alertToast").classList.add("hidden");
+    }
+
+    async function triggerNfcRead() {
+      if (!("NDEFReader" in window)) {
+        showAlert("NFC Info", "Web NFC reading is supported on Android Chrome. On iOS devices, please use camera barcode scanning.", "info");
+        return;
+      }
+
+      try {
+        nfcReader = new NDEFReader();
+        await nfcReader.scan();
+        showAlert("NFC Active", "Tap an NFC tag against the back of your device...", "info");
+
+        nfcReader.addEventListener("reading", ({ serialNumber, message }) => {
+          let scannedVal = serialNumber;
+          if (message && message.records.length > 0) {
+            const decoder = new TextDecoder();
+            for (const record of message.records) {
+              if (record.data) {
+                scannedVal = decoder.decode(record.data);
+                break;
+              }
+            }
+          }
+          document.getElementById("itemId").value = scannedVal || "UNKNOWN_NFC_TAG";
+          showAlert("NFC Tag Read", `Captured Tag ID: <strong>${scannedVal}</strong>`, "success");
+        });
+      } catch (error) {
+        showAlert("NFC Error", "NFC scan failed or permission denied: " + error.message, "error");
+      }
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+
+      const itemId = document.getElementById("itemId").value.trim();
+      const location = document.getElementById("storageLocation").value;
+      const operator = document.getElementById("operator").value.trim();
+      const submitBtn = document.getElementById("submitBtn");
+
+      if (!itemId || !location || !operator) {
+        showAlert("Validation Error", "Please fill in all required fields.", "error");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>Saving...</span>`;
+      safeInitIcons();
+
+      const payload = JSON.stringify({ itemId, location, operator });
+
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
+          body: payload
+        });
+
+        showAlert("Success", `Inventory item <strong>${itemId}</strong> saved to Google Sheet!`, "success");
+        document.getElementById("itemId").value = "";
+      } catch (err) {
+        showAlert("Submission Error", "Failed to communicate with Google Sheet endpoint.", "error");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i> <span>Save to Google Sheet</span>`;
+        safeInitIcons();
+      }
+    }
+  </script>
+</body>
+</html>
