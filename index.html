@@ -10,12 +10,13 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- html5-qrcode Library for Barcode/QR Scanning -->
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
 
   <style>
     #reader video {
       object-fit: cover !important;
       border-radius: 0.75rem;
+      width: 100% !important;
     }
     .pb-safe {
       padding-bottom: calc(1rem + env(safe-area-inset-bottom, 20px));
@@ -77,7 +78,7 @@
 
         <!-- Camera Viewfinder -->
         <div id="scannerContainer" class="hidden relative rounded-xl overflow-hidden bg-slate-950 border border-slate-700 mb-3 shadow-inner">
-          <div id="reader" class="w-full"></div>
+          <div id="reader" class="w-full min-h-[250px]"></div>
           <button id="stopScanBtn" onclick="stopCameraScanner()" class="absolute top-2 right-2 z-10 bg-rose-600/90 hover:bg-rose-600 text-white p-2 rounded-lg text-xs font-medium backdrop-blur flex items-center space-x-1 shadow">
             <i data-lucide="camera-off" class="w-4 h-4"></i>
             <span>Close Camera</span>
@@ -190,7 +191,7 @@
 
   <!-- JavaScript Logic -->
   <script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyq52gFMMwfpj11O0xm6tudgxF1QfujuThH8VbAhjzfoj2RWh3OKVE5T-44OBiWnqfOHg/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw3J_UTxuGUETX1_b8MLp3Vd99gRp2gT9KJkhp_8ziAp8KPRV6FAk3ESxs_a2eQ9ShAKA/exec";
 
     let html5QrCode = null;
     let nfcReader = null;
@@ -237,13 +238,82 @@
       lucide.createIcons();
     }
 
+    async function startCameraScanner() {
+      const container = document.getElementById("scannerContainer");
+      container.classList.remove("hidden");
+
+      if (!html5QrCode) {
+        // Explicitly load all standard 1D and 2D barcode formats
+        html5QrCode = new Html5Qrcode("reader", {
+          verbose: false,
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.CODABAR,
+            Html5QrcodeSupportedFormats.ITF
+          ]
+        });
+      }
+
+      // Wide scan region optimized for 1D linear barcodes
+      const config = {
+        fps: 15,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const width = Math.floor(viewfinderWidth * 0.85);
+          const height = Math.floor(viewfinderHeight * 0.45);
+          return { width: width, height: Math.max(height, 120) };
+        },
+        videoConstraints: {
+          facingMode: { exact: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          config,
+          (decodedText) => {
+            document.getElementById("itemId").value = decodedText;
+            showAlert("Barcode Scanned", `Captured ID: <strong>${decodedText}</strong>`, "success");
+            stopCameraScanner();
+          },
+          () => {}
+        );
+      } catch (err) {
+        // Fallback if environment constraint fails on older hardware
+        try {
+          await html5QrCode.start({ facingMode: "user" }, config, (decodedText) => {
+            document.getElementById("itemId").value = decodedText;
+            showAlert("Barcode Scanned", `Captured ID: <strong>${decodedText}</strong>`, "success");
+            stopCameraScanner();
+          }, () => {});
+        } catch (fallbackErr) {
+          showAlert("Camera Error", "Could not access camera. Ensure camera permissions are allowed.", "error");
+          container.classList.add("hidden");
+        }
+      }
+    }
+
+    async function stopCameraScanner() {
+      if (html5QrCode && html5QrCode.isScanning) {
+        await html5QrCode.stop();
+      }
+      document.getElementById("scannerContainer").classList.add("hidden");
+    }
+
     async function fetchLatestInventory() {
       const container = document.getElementById('inventoryList');
       container.innerHTML = `<div class="text-center py-8 text-slate-400 text-sm flex items-center justify-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Fetching from Google Sheets...</div>`;
       lucide.createIcons();
 
       try {
-        // Fetch with explicit follow-redirect settings to resolve CORS redirect block
         const response = await fetch(APPS_SCRIPT_URL, {
           method: "GET",
           redirect: "follow"
@@ -400,47 +470,6 @@
     function hideAlert() {
       document.getElementById("alertToast").classList.add("hidden");
     }
-
-async function startCameraScanner() {
-  const container = document.getElementById("scannerContainer");
-  container.classList.remove("hidden");
-
-  if (!html5QrCode) {
-    html5QrCode = new Html5Qrcode("reader");
-  }
-
-  // Configuration with high frame rate and broad format support
-  const config = {
-    fps: 15,
-    qrbox: { width: 280, height: 180 },
-    formatsToSupport: [
-      Html5QrcodeSupportedFormats.QR_CODE,
-      Html5QrcodeSupportedFormats.EAN_13,
-      Html5QrcodeSupportedFormats.EAN_8,
-      Html5QrcodeSupportedFormats.CODE_128,
-      Html5QrcodeSupportedFormats.CODE_39,
-      Html5QrcodeSupportedFormats.UPC_A,
-      Html5QrcodeSupportedFormats.UPC_E,
-      Html5QrcodeSupportedFormats.ITF
-    ]
-  };
-
-  try {
-    await html5QrCode.start(
-      { facingMode: "environment" }, // Uses back camera
-      config,
-      (decodedText) => {
-        document.getElementById("itemId").value = decodedText;
-        showAlert("Barcode Scanned", `Captured ID: <strong>${decodedText}</strong>`, "success");
-        stopCameraScanner();
-      },
-      () => {}
-    );
-  } catch (err) {
-    showAlert("Camera Error", "Could not access camera. Ensure permissions are granted in browser settings.", "error");
-    container.classList.add("hidden");
-  }
-}
 
     async function triggerNfcRead() {
       if (!("NDEFReader" in window)) {
