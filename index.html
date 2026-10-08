@@ -401,39 +401,46 @@
       document.getElementById("alertToast").classList.add("hidden");
     }
 
-    async function startCameraScanner() {
-      const container = document.getElementById("scannerContainer");
-      container.classList.remove("hidden");
+async function startCameraScanner() {
+  const container = document.getElementById("scannerContainer");
+  container.classList.remove("hidden");
 
-      if (!html5QrCode) {
-        html5QrCode = new Html5Qrcode("reader");
-      }
+  if (!html5QrCode) {
+    html5QrCode = new Html5Qrcode("reader");
+  }
 
-      const config = { fps: 10, qrbox: { width: 250, height: 180 } };
+  // Configuration with high frame rate and broad format support
+  const config = {
+    fps: 15,
+    qrbox: { width: 280, height: 180 },
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.ITF
+    ]
+  };
 
-      try {
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          config,
-          (decodedText) => {
-            document.getElementById("itemId").value = decodedText;
-            showAlert("Barcode Scanned", `Captured ID: <strong>${decodedText}</strong>`, "success");
-            stopCameraScanner();
-          },
-          () => {}
-        );
-      } catch (err) {
-        showAlert("Camera Error", "Could not access camera. Ensure permissions are granted.", "error");
-        container.classList.add("hidden");
-      }
-    }
-
-    async function stopCameraScanner() {
-      if (html5QrCode && html5QrCode.isScanning) {
-        await html5QrCode.stop();
-      }
-      document.getElementById("scannerContainer").classList.add("hidden");
-    }
+  try {
+    await html5QrCode.start(
+      { facingMode: "environment" }, // Uses back camera
+      config,
+      (decodedText) => {
+        document.getElementById("itemId").value = decodedText;
+        showAlert("Barcode Scanned", `Captured ID: <strong>${decodedText}</strong>`, "success");
+        stopCameraScanner();
+      },
+      () => {}
+    );
+  } catch (err) {
+    showAlert("Camera Error", "Could not access camera. Ensure permissions are granted in browser settings.", "error");
+    container.classList.add("hidden");
+  }
+}
 
     async function triggerNfcRead() {
       if (!("NDEFReader" in window)) {
